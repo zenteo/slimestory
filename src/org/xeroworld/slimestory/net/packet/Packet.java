@@ -1,8 +1,10 @@
-package org.xeroworld.slimestory.net;
+package org.xeroworld.slimestory.net.packet;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+
+import org.xeroworld.slimestory.net.PacketHandler;
 
 public class Packet {
 	private int id;
@@ -14,6 +16,10 @@ public class Packet {
 	
 	public Packet(int id) {
 		this.id = id;
+	}
+	
+	public Packet(Packet question) {
+		this.question = question;
 	}
 	
 	public Packet(PacketHandler callback) {

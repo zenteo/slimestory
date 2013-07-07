@@ -6,6 +6,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 
+import org.xeroworld.slimestory.net.packet.MessagePacket;
+import org.xeroworld.slimestory.net.packet.Packet;
+import org.xeroworld.slimestory.net.packet.PingPacket;
+
 public class PacketManager {
 	private ArrayList<Class<? extends Packet>> list;
 	private HashMap<Class<? extends Packet>, Integer> map;
@@ -17,22 +21,23 @@ public class PacketManager {
 	}
 	
 	private void registerDefaults() {
-		
+		registerPacket(PingPacket.class);
+		registerPacket(MessagePacket.class);
 	}
 	
-	public void registerClass(Class<? extends Packet> c) {
+	public void registerPacket(Class<? extends Packet> c) {
 		map.put(c, list.size());
 		list.add(c);
 	}
 	
 	public void write(Packet packet, DataOutputStream stream) throws IOException {
 		int i = map.get(packet.getClass());
-		stream.write(i);
+		stream.writeByte(i);
 		packet.write(stream);
 	}
 	
 	public Packet read(DataInputStream stream) throws IOException {
-		int i = stream.read();
+		int i = stream.readByte();
 		Class<? extends Packet> c = list.get(i);
 		try {
 			Packet ret = c.newInstance();

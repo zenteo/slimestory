@@ -6,9 +6,12 @@ import java.net.Socket;
 import java.util.ArrayList;
 
 import org.xeroworld.slimestory.net.Connection;
+import org.xeroworld.slimestory.net.PacketHandler;
 import org.xeroworld.slimestory.net.PacketManager;
+import org.xeroworld.slimestory.net.packet.MessagePacket;
+import org.xeroworld.slimestory.net.packet.Packet;
 
-public class Server implements Runnable {
+public class Server implements Runnable, PacketHandler {
 	private PacketManager packetManager;
 	private ServerSocket socket;
 	private Thread acceptThread;
@@ -36,7 +39,7 @@ public class Server implements Runnable {
 				for (int i = clients.size()-1; i >= 0; i--) {
 					Connection c = clients.get(i);
 					c.tick(deltaTime);
-					if ((c.getStatus()&Connection.STATUS_CONNECTED) != 0) {
+					if (c.getStatus() != Connection.STATUS_CONNECTED) {
 						clients.remove(i);
 						System.out.println("We lost an connection.");
 					}
@@ -49,8 +52,18 @@ public class Server implements Runnable {
 		}
 	}
 	
+	@Override
+	public void handlePacket(Connection connection, Packet packet) {
+		if (packet instanceof MessagePacket) {
+			MessagePacket msg = (MessagePacket)packet;
+			connection.send(new MessagePacket(msg, msg.getMessage()*2));
+		}
+	}
+	
 	public void handleClient(Socket client) {
-		clients.add(new Connection(client, packetManager));
+		Connection c = new Connection(client, packetManager);
+		c.addPacketHandler(this);
+		clients.add(c);
 		System.out.println("We got an connection.");
 	}
 	
