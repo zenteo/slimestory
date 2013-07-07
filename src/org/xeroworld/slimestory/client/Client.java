@@ -1,5 +1,5 @@
 package org.xeroworld.slimestory.client;
 
-public class Game {
+public class Client {
 
 }
