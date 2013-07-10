@@ -11,22 +11,43 @@ import org.xeroworld.slimestory.net.PacketManager;
 import org.xeroworld.slimestory.net.packet.MessagePacket;
 import org.xeroworld.slimestory.net.packet.Packet;
 
-public class Server implements Runnable, PacketHandler {
+public abstract class Server implements Runnable, PacketHandler {
 	private PacketManager packetManager;
 	private ServerSocket socket;
 	private Thread acceptThread;
 	private boolean running;
-	private ArrayList<Connection> clients;
+	private ArrayList<Connection> connections;
+	private int tickDelay = 0;
+
+	public abstract void tick(Connection connection, double deltaTime);
+	public abstract void handleConnection(Connection connection);
+	public abstract void handleDisconnection(Connection connection);
 	
 	public Server(int port) {
 		try {
 			socket = new ServerSocket(port);
-			clients = new ArrayList<Connection>();
+			connections = new ArrayList<Connection>();
 			packetManager = new PacketManager();
 		}
 		catch (IOException e) {
 			e.printStackTrace();
 		}
+	}
+	
+	public ArrayList<Connection> getConnections() {
+		return connections;
+	}
+
+	public void setConnections(ArrayList<Connection> connections) {
+		this.connections = connections;
+	}
+	
+	public PacketManager getPacketManager() {
+		return packetManager;
+	}
+
+	public void setPacketManager(PacketManager packetManager) {
+		this.packetManager = packetManager;
 	}
 	
 	public void mainloop() {
@@ -36,15 +57,17 @@ public class Server implements Runnable, PacketHandler {
 			double deltaTime = (now-lastTick) / 1.0E9;
 			lastTick = now;
 			try {
-				for (int i = clients.size()-1; i >= 0; i--) {
-					Connection c = clients.get(i);
+				for (int i = connections.size()-1; i >= 0; i--) {
+					Connection c = connections.get(i);
 					c.tick(deltaTime);
+					tick(c, deltaTime);
 					if (c.getStatus() != Connection.STATUS_CONNECTED) {
-						clients.remove(i);
+						connections.remove(i);
 						System.out.println("We lost an connection.");
+						handleDisconnection(c);
 					}
 				}
-				Thread.sleep(10);
+				Thread.sleep(tickDelay);
 			}
 			catch (InterruptedException e) {
 				e.printStackTrace();
@@ -52,19 +75,12 @@ public class Server implements Runnable, PacketHandler {
 		}
 	}
 	
-	@Override
-	public void handlePacket(Connection connection, Packet packet) {
-		if (packet instanceof MessagePacket) {
-			MessagePacket msg = (MessagePacket)packet;
-			connection.send(new MessagePacket(msg, msg.getMessage()*2));
-		}
-	}
-	
 	public void handleClient(Socket client) {
 		Connection c = new Connection(client, packetManager);
 		c.addPacketHandler(this);
-		clients.add(c);
+		connections.add(c);
 		System.out.println("We got an connection.");
+		handleConnection(c);
 	}
 	
 	@Override
@@ -93,10 +109,5 @@ public class Server implements Runnable, PacketHandler {
 	public void stop() {
 		running = false;
 		acceptThread = null;
-	}
-	
-	public static void main(String[] args) {
-		Server server = new Server(5340);
-		server.start();
 	}
 }

@@ -27,6 +27,7 @@ public class Connection implements Tickable {
 	private int packetCounter;
 	private long lastSent;
 	private long lastReceived;
+	private int networkDelay;
 	private DataOutputStream out;
 	private DataInputStream in;
 	private HashMap<Integer, PacketHandler> callbacks;
@@ -109,6 +110,9 @@ public class Connection implements Tickable {
 							handler.handlePacket(this, p);
 						}
 					}
+					else {
+						networkDelay = ((PingPacket)p).getPing();
+					}
 					lastReceived = System.currentTimeMillis();
 				}
 			}
@@ -149,5 +153,9 @@ public class Connection implements Tickable {
 
 	public void setOutbox(LinkedList<Packet> outbox) {
 		this.outbox = outbox;
+	}
+
+	public int getNetworkDelay() {
+		return networkDelay;
 	}
 }
